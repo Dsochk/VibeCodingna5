@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Админ-панель</h1>
+<table border="1">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Логин</th>
+            <th>Пароль (хеш)</th>
+            <th>Администратор</th>
+            <th>Действия</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.login }}</td>
+            <td>{{ user.password }}</td>
+            <td>{{ 'Да' if user.is_admin else 'Нет' }}</td>
+            <td>
+                <button onclick="openEditUserModal('{{ user.id }}', '{{ user.login }}', '{{ user.is_admin }}')">Редактировать</button>
+                <form method="post" action="{{ url_for('delete_user', user_id=user.id) }}" style="display:inline;">
+                    <button type="submit">Удалить</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<button onclick="openAddUserModal()">Добавить пользователя</button>
+
+<!-- Кнопка для возврата к списку задач -->
+<a href="{{ url_for('task_list') }}" class="button">Вернуться к задачам</a>
+
+<!-- Модальное окно для добавления пользователя -->
+<div id="addUserModal" style="display:none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border: 1px solid #ccc; box-shadow: 0 0 10px rgba(0,0,0,0.5);">
+    <div>
+        <h2>Добавить пользователя</h2>
+        <form id="addUserForm">
+            <input type="text" id="username" name="username" placeholder="Логин" required>
+            <input type="password" id="password" name="password" placeholder="Пароль" required>
+            <label>
+                <input type="checkbox" id="isAdmin" name="is_admin"> Администратор
+            </label>
+            <button type="button" onclick="addUser()">Добавить</button>
+            <button type="button" onclick="closeAddUserModal()">Отмена</button>
+        </form>
+    </div>
+</div>
+
+<!-- Модальное окно для редактирования пользователя -->
+<div id="editUserModal" style="display:none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border: 1px solid #ccc; box-shadow: 0 0 10px rgba(0,0,0,0.5);">
+    <div>
+        <h2>Редактировать пользователя</h2>
+        <form id="editUserForm">
+            <input type="hidden" id="userId" name="user_id">
+            <input type="text" id="editUsername" name="username" placeholder="Логин" required>
+            <input type="password" id="editPassword" name="password" placeholder="Новый пароль">
+            <label>
+                <input type="checkbox" id="editIsAdmin" name="is_admin"> Администратор
+            </label>
+            <button type="button" onclick="saveUser()">Сохранить</button>
+            <button type="button" onclick="closeEditUserModal()">Отмена</button>
+        </form>
+    </div>
+</div>
+
+<script>
+function openAddUserModal() {
+    document.getElementById('addUserModal').style.display = 'block';
+}
+
+function closeAddUserModal() {
+    document.getElementById('addUserModal').style.display = 'none';
+}
+
+function addUser() {
+    var username = document.getElementById('username').value;
+    var password = document.getElementById('password').value;
+    var isAdmin = document.getElementById('isAdmin').checked ? 1 : 0;
+    fetch('/add_user', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username: username, password: password, is_admin: isAdmin })
+    }).then(response => {
+        if (response.ok) {
+            location.reload();
+        } else {
+            alert('Ошибка при добавлении пользователя');
+        }
+    });
+}
+
+function openEditUserModal(userId, username, isAdmin) {
+    document.getElementById('userId').value = userId;
+    document.getElementById('editUsername').value = username;
+    document.getElementById('editIsAdmin').checked = isAdmin == '1';
+    document.getElementById('editUserModal').style.display = 'block';
+}
+
+function closeEditUserModal() {
+    document.getElementById('editUserModal').style.display = 'none';
+}
+
+function saveUser() {
+    var userId = document.getElementById('userId').value;
+    var username = document.getElementById('editUsername').value;
+    var password = document.getElementById('editPassword').value;
+    var isAdmin = document.getElementById('editIsAdmin').checked ? 1 : 0;
+    fetch('/edit_user/' + userId, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username: username, password: password, is_admin: isAdmin })
+    }).then(response => {
+        if (response.ok) {
+            location.reload();
+        } else {
+            alert('Ошибка при сохранении пользователя');
+        }
+    });
+}
+</script>
+{% endblock %}

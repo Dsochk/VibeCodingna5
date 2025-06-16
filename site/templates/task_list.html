@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Ваши задачи</h1>
+<table>
+    <thead>
+        <tr>
+            <th>Задача</th>
+            <th>Действия</th>
+        </tr>
+    </thead>
+    <tbody id="task-list">
+        {% for task in tasks %}
+        <tr data-id="{{ task.id }}">
+            <td>{{ task.text }}</td>
+            <td>
+                <button onclick="openEditTaskModal('{{ task.id }}', '{{ task.text }}')">Редактировать</button>
+                <form method="post" action="{{ url_for('delete_task', task_id=task.id) }}" style="display:inline">
+                    <button type="submit">Удалить</button>
+                </form>
+                <button onclick="moveTaskUp('{{ task.id }}')">↑</button>
+                <button onclick="moveTaskDown('{{ task.id }}')">↓</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% if is_admin() %}
+<a href="{{ url_for('admin_panel') }}">Админ-панель</a>
+{% endif %}
+<button onclick="openAddTaskModal()">Добавить задачу</button>
+<a href="{{ url_for('logout') }}">Выйти</a>
+
+<!-- Модальное окно для добавления задачи -->
+<div id="addTaskModal" style="display:none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border: 1px solid #ccc; box-shadow: 0 0 10px rgba(0,0,0,0.5);">
+    <div>
+        <h2>Добавить задачу</h2>
+        <form id="addTaskForm">
+            <input type="text" id="addTaskText" name="text" placeholder="Текст задачи" required>
+            <button type="button" onclick="addTask()">Добавить</button>
+            <button type="button" onclick="closeAddTaskModal()">Отмена</button>
+        </form>
+    </div>
+</div>
+
+<!-- Модальное окно для редактирования задачи -->
+<div id="editTaskModal" style="display:none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border: 1px solid #ccc; box-shadow: 0 0 10px rgba(0,0,0,0.5);">
+    <div>
+        <h2>Редактировать задачу</h2>
+        <form id="editTaskForm">
+            <input type="hidden" id="taskId" name="task_id">
+            <input type="text" id="editTaskText" name="text" required>
+            <button type="button" onclick="saveTask()">Сохранить</button>
+            <button type="button" onclick="closeEditTaskModal()">Отмена</button>
+        </form>
+    </div>
+</div>
+
+<script>
+function openAddTaskModal() {
+    document.getElementById('addTaskModal').style.display = 'block';
+}
+
+function closeAddTaskModal() {
+    document.getElementById('addTaskModal').style.display = 'none';
+}
+
+function addTask() {
+    var taskText = document.getElementById('addTaskText').value;
+    fetch('/add_task', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ text: taskText })
+    }).then(response => {
+        if (response.ok) {
+            location.reload();
+        } else {
+            alert('Ошибка при добавлении задачи');
+        }
+    });
+}
+
+function openEditTaskModal(taskId, taskText) {
+    document.getElementById('taskId').value = taskId;
+    document.getElementById('editTaskText').value = taskText;
+    document.getElementById('editTaskModal').style.display = 'block';
+}
+
+function closeEditTaskModal() {
+    document.getElementById('editTaskModal').style.display = 'none';
+}
+
+function saveTask() {
+    var taskId = document.getElementById('taskId').value;
+    var taskText = document.getElementById('editTaskText').value;
+    fetch('/edit_task/' + taskId, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ text: taskText })
+    }).then(response => {
+        if (response.ok) {
+            location.reload();
+        } else {
+            alert('Ошибка при сохранении задачи');
+        }
+    });
+}
+
+// Функции для перемещения задач
+function moveTaskUp(taskId) {
+    const taskList = document.getElementById('task-list');
+    const taskRow = taskList.querySelector(`tr[data-id="${taskId}"]`);
+    const prevRow = taskRow.previousElementSibling;
+    if (prevRow) {
+        taskList.insertBefore(taskRow, prevRow);
+        saveOrder();
+    }
+}
+
+function moveTaskDown(taskId) {
+    const taskList = document.getElementById('task-list');
+    const taskRow = taskList.querySelector(`tr[data-id="${taskId}"]`);
+    const nextRow = taskRow.nextElementSibling;
+    if (nextRow) {
+        taskList.insertBefore(nextRow, taskRow);
+        saveOrder();
+    }
+}
+
+// Сохранение порядка задач
+function saveOrder() {
+    const taskIds = Array.from(document.querySelectorAll('#task-list tr')).map(tr => tr.dataset.id);
+    fetch('/reorder_tasks', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ task_ids: taskIds })
+    }).then(response => {
+        if (!response.ok) {
+            alert('Ошибка при обновлении порядка задач');
+        }
+    });
+}
+</script>
+{% endblock %}

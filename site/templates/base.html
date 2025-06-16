@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Планировщик задач</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* Стили для всплывающих оповещений */
+        .flash-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            opacity: 1;
+            transition: opacity 0.5s ease-in-out;
+            z-index: 1000;
+        }
+        .flash-message.hide {
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Контейнер для всплывающих оповещений -->
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="flash-message">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+    <script>
+        // Скрытие оповещений через 3 секунды
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashes = document.querySelectorAll('.flash-message');
+            flashes.forEach(function(flash) {
+                setTimeout(function() {
+                    flash.classList.add('hide');
+                }, 3000);
+                // Удаление элемента после анимации
+                flash.addEventListener('transitionend', function() {
+                    flash.remove();
+                });
+            });
+        });
+    </script>
+</body>
+</html>
